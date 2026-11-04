@@ -1,4 +1,4 @@
-export const DEFAULT_SCENE_SCALE = 1.77
+export const DEFAULT_SCENE_SCALE = 1.3
 export const MIN_SCENE_SCALE = 0.5
 export const MAX_SCENE_SCALE = 10
 

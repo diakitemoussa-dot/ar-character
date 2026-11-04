@@ -20,7 +20,7 @@ export const WALK_FORCE = 60          // N
 export const PUSH_FORCE = 140         // N
 
 // size (edge, m), colour, and angle (degrees from +Z toward +X) on the ring around the origin.
-// The sector around +Z stays free so the player can walk up to the opponent (1.5 m in +Z).
+// The sector around +Z stays free (open space in front of the player at placement).
 const SPECS = [
   { size: 0.32, color: '#55415D', angle: -100, ring: 1.0 },
   { size: 0.15, color: '#F9D58B', angle: -60,  ring: 1.0 },
@@ -59,15 +59,6 @@ export function createCubes(scene, origin = { x: 0, z: 0 }) {
   const floor = new CANNON.Body({ mass: 0, material: mat, shape: new CANNON.Plane() })
   floor.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
   world.addBody(floor)
-
-  // standing opponent: kinematic box (0.4 x 1 x 0.4)
-  const opp = new CANNON.Body({
-    mass: 0, type: CANNON.Body.KINEMATIC, material: mat,
-    shape: new CANNON.Box(new CANNON.Vec3(0.2, 0.5, 0.2))
-  })
-  opp.position.set(0, 0.5, 0)
-  let oppInWorld = false
-  let oppTarget = null
 
   const bodies = []
   const meshes = []
@@ -122,18 +113,6 @@ export function createCubes(scene, origin = { x: 0, z: 0 }) {
     },
     setVisible(v) { meshes.forEach(m => { m.visible = v }) },
 
-    // Opponent obstacle: pos {x, z} in world coordinates, or null when it must not collide.
-    setOpponent(pos) {
-      if (!pos) {
-        if (oppInWorld) { world.removeBody(opp); oppInWorld = false }
-        oppTarget = null
-        return
-      }
-      const x = pos.x - ox, z = pos.z - oz
-      if (!oppInWorld) { opp.position.set(x, 0.5, z); world.addBody(opp); oppInWorld = true }
-      oppTarget = { x, z }
-    },
-
     // Horizontal push force (N) on a cube this frame, applied at its center on every substep.
     pushForce(body, fx, fz) {
       const f = forces.get(body) || { x: 0, z: 0 }
@@ -152,9 +131,6 @@ export function createCubes(scene, origin = { x: 0, z: 0 }) {
       while (acc >= FIXED_DT) {
         stepped = true
         for (const [b, f] of active) b.applyForce(new CANNON.Vec3(f.x, 0, f.z), zero)
-        if (oppInWorld && oppTarget) {
-          opp.velocity.set((oppTarget.x - opp.position.x) / FIXED_DT, 0, (oppTarget.z - opp.position.z) / FIXED_DT)
-        }
         world.step(FIXED_DT)
         for (const b of bodies) {
           const v = capSpeed(b.velocity.x, b.velocity.z, MAX_SPEED)

@@ -1,7 +1,6 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { pickClip, animationFor, facingAngle, approachAngle, stepPosition } from './movement.js'
-import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { horizontalOffset } from './root-motion.js'
 
 const WALK_SPEED = 0.6   // meters per second
@@ -100,16 +99,6 @@ export class Character {
   endOnce() {
     this.lockedKey = null
     this.play('idle')
-  }
-
-  // Independent copy of the loaded model (own skeleton, mixer and Idle action), no reload.
-  // Materials are still shared: the caller clones them before tinting.
-  cloneForOpponent() {
-    const group = cloneSkinned(this.model)
-    const mixer = new THREE.AnimationMixer(group)
-    const actions = {}
-    if (this.actions.idle) actions.idle = mixer.clipAction(this.actions.idle.getClip())
-    return { group, mixer, actions }
   }
 
   setHidden(h) { this.group.visible = !h }

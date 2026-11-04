@@ -1,11 +1,9 @@
 import * as THREE from 'three'
 import { Character } from './character.js'
 import { joystickToWorld } from './movement.js'
-import { ACTIONS, inReach, createActionState, startAction, tickAction } from './actions.js'
+import { ACTIONS, createActionState, startAction, tickAction } from './actions.js'
 import { createCubes, WALK_FORCE, PUSH_FORCE } from './cubes.js'
-import { createOpponent } from './opponent.js'
 import { createShadow } from './shadow.js'
-import { separate } from './physics.js'
 import { DEFAULT_SCENE_SCALE } from './scale.js'
 
 const PLAYER_RADIUS = 0.2
@@ -25,7 +23,6 @@ export function createApp({ modelUrl, onBusy = () => {}, scale = DEFAULT_SCENE_S
   let placed = false
   let cubes = null
   let shadow = null
-  let opponent = null
   let action = createActionState()
   let state = 'free' // free | action
   let prev = null    // player position after last frame's collision resolution
@@ -35,9 +32,6 @@ export function createApp({ modelUrl, onBusy = () => {}, scale = DEFAULT_SCENE_S
   function applyImpact(name) {
     const p = { x: pos().x, z: pos().z }
     const f = character.angle
-    if (name === 'boxing' && opponent && inReach(p, f, opponent.position, ACTIONS.boxing.reach)) {
-      opponent.hit(p)
-    }
     if (name === 'boxing') cubes.boxing(p, f, ACTIONS.boxing.reach)
     else if (name === 'jump') cubes.jump(p)
   }
@@ -45,7 +39,6 @@ export function createApp({ modelUrl, onBusy = () => {}, scale = DEFAULT_SCENE_S
   return {
     character, world, scale,
     get cubes() { return cubes },
-    get opponent() { return opponent },
     setInput(v) { input = v },
     getActionState() { return action },
 
@@ -73,7 +66,6 @@ export function createApp({ modelUrl, onBusy = () => {}, scale = DEFAULT_SCENE_S
       cubes = createCubes(world)
       await character.load(modelUrl)
       character.group.traverse(o => { if (o.isMesh) o.castShadow = true })
-      opponent = createOpponent(world, character)
     },
 
     place(p) {
@@ -85,7 +77,6 @@ export function createApp({ modelUrl, onBusy = () => {}, scale = DEFAULT_SCENE_S
       shadow.place({ x: 0, y: 0, z: 0 })
       cubes.reset({ x: 0, z: 0 }, 0)
       cubes.setVisible(true)
-      opponent.place({ x: 0, z: 0 })
       prev = { x: 0, z: 0 }
       placed = true
     },
@@ -114,9 +105,6 @@ export function createApp({ modelUrl, onBusy = () => {}, scale = DEFAULT_SCENE_S
         }
       }
 
-      opponent.update(dt)
-      cubes.setOpponent(opponent.blocking ? opponent.position : null)
-
       // Forces on cubes: walking into one (60 N) or the Push action (140 N, continuous), along the
       // contact direction. Light cubes slide, heavy ones just resist friction and block the player.
       const move = { x: pos().x - prev.x, z: pos().z - prev.z }
@@ -134,12 +122,7 @@ export function createApp({ modelUrl, onBusy = () => {}, scale = DEFAULT_SCENE_S
       }
       cubes.update(dt)
 
-      // the player is blocked by the standing opponent and by cubes
-      if (opponent.blocking) {
-        const c = separate(pos(), PLAYER_RADIUS, opponent.blocker, opponent.blocker.r)
-        pos().x += c.x
-        pos().z += c.z
-      }
+      // the player is blocked by cubes
       const res = cubes.contacts({ x: pos().x, z: pos().z }, PLAYER_RADIUS)
       pos().x += res.correction.x
       pos().z += res.correction.z
