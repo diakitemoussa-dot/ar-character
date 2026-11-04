@@ -6,13 +6,17 @@ import { createCubes, WALK_FORCE, PUSH_FORCE } from './cubes.js'
 import { createOpponent } from './opponent.js'
 import { createShadow } from './shadow.js'
 import { separate } from './physics.js'
+import { DEFAULT_SCENE_SCALE } from './scale.js'
 
 const PLAYER_RADIUS = 0.2
 // the Push clip extends the arms: cubes within this gap of the player circle keep being pushed
 const PUSH_REACH_GAP = 0.25
 const ZERO_DIR = { x: 0, z: 0, magnitude: 0 }
 
-export function createApp({ modelUrl, onBusy = () => {} }) {
+// All game objects live in `world`, whose local frame is the game frame (meters, floor at y = 0).
+// place() puts the group at the real-world hit point and scales it, so game logic never sees S.
+export function createApp({ modelUrl, onBusy = () => {}, scale = DEFAULT_SCENE_SCALE }) {
+  const world = new THREE.Group()
   const clock = new THREE.Clock()
   const character = new Character()
   const forward = new THREE.Vector3()
@@ -39,7 +43,7 @@ export function createApp({ modelUrl, onBusy = () => {} }) {
   }
 
   return {
-    character,
+    character, world, scale,
     get cubes() { return cubes },
     get opponent() { return opponent },
     setInput(v) { input = v },
@@ -62,23 +66,27 @@ export function createApp({ modelUrl, onBusy = () => {} }) {
       const sun = new THREE.DirectionalLight(0xffffff, 1.5)
       sun.position.set(2, 4, 2)
       scene.add(sun)
-      shadow = createShadow(scene)
+      scene.add(world)
+      shadow = createShadow(world)
       character.group.visible = false
-      scene.add(character.group)
-      cubes = createCubes(scene)
+      world.add(character.group)
+      cubes = createCubes(world)
       await character.load(modelUrl)
       character.group.traverse(o => { if (o.isMesh) o.castShadow = true })
-      opponent = createOpponent(scene, character)
+      opponent = createOpponent(world, character)
     },
 
     place(p) {
-      character.group.position.set(p.x, p.y, p.z)
+      world.position.set(p.x, p.y, p.z)
+      world.scale.setScalar(scale)
+      shadow.setScale(scale)
+      character.group.position.set(0, 0, 0)
       character.group.visible = true
-      shadow.place(p)
-      cubes.reset({ x: p.x, z: p.z }, p.y)
+      shadow.place({ x: 0, y: 0, z: 0 })
+      cubes.reset({ x: 0, z: 0 }, 0)
       cubes.setVisible(true)
-      opponent.place({ x: p.x, z: p.z })
-      prev = { x: p.x, z: p.z }
+      opponent.place({ x: 0, z: 0 })
+      prev = { x: 0, z: 0 }
       placed = true
     },
 

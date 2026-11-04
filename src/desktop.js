@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 
-export async function startDesktop({ canvas, app }) {
+export async function startDesktop({ canvas, app, scale = 1 }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
   renderer.setPixelRatio(window.devicePixelRatio)
   renderer.shadowMap.enabled = true
@@ -8,9 +8,9 @@ export async function startDesktop({ canvas, app }) {
   const scene = new THREE.Scene()
   scene.background = new THREE.Color(0x223344)
   scene.add(new THREE.GridHelper(10, 20))
-  const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100)
-  camera.position.set(0, 1.6, 3)
-  camera.lookAt(0, 0.5, 0)
+  const camera = new THREE.PerspectiveCamera(60, 1, 0.1 * scale, 100 * scale)
+  camera.position.set(0, 1.6 * scale, 3 * scale)
+  camera.lookAt(0, 0.5 * scale, 0)
 
   if (new URLSearchParams(location.search).has('debug')) window.__cam = camera
   const resize = () => {

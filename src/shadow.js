@@ -8,7 +8,7 @@ export function lightPosition(p, offset = SHADOW_OFFSET) {
 }
 
 // Invisible floor that only receives shadows, plus a shadow-casting sun aimed at the floor point.
-export function createShadow(scene) {
+export function createShadow(parent) {
   const light = new THREE.DirectionalLight(0xffffff, 0)
   light.castShadow = true
   light.shadow.mapSize.set(1024, 1024)
@@ -17,7 +17,7 @@ export function createShadow(scene) {
   cam.near = 0.1; cam.far = 12
   light.shadow.bias = -0.0005
   light.shadow.normalBias = 0.02
-  scene.add(light, light.target)
+  parent.add(light, light.target)
 
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(12, 12),
@@ -28,10 +28,20 @@ export function createShadow(scene) {
   floor.renderOrder = 1
   floor.visible = false
   floor.raycast = () => {} // never intercepts taps
-  scene.add(floor)
+  parent.add(floor)
+
+  // The shadow camera is not a scene child: its bounds and biases do not follow the parent's scale.
+  const base = { half: 3, near: 0.1, far: 12, normalBias: 0.02 }
+  const setScale = s => {
+    cam.left = -base.half * s; cam.right = base.half * s
+    cam.top = base.half * s; cam.bottom = -base.half * s
+    cam.near = base.near * s; cam.far = base.far * s
+    light.shadow.normalBias = base.normalBias * s
+    cam.updateProjectionMatrix()
+  }
 
   return {
-    light, floor,
+    light, floor, setScale,
     place(p) {
       const lp = lightPosition(p)
       light.position.set(lp.x, lp.y, lp.z)
