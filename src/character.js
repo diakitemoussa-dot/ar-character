@@ -6,6 +6,10 @@ const WALK_SPEED = 0.6   // meters per second
 const TURN_SPEED = 8     // radians per second
 const FADE = 0.2         // animation cross-fade, seconds
 
+// Direction the model faces at rotation 0, as an angle around Y.
+// The sample Soldier.glb faces -Z (angle PI). A model facing +Z uses 0.
+const MODEL_FACING_OFFSET = Math.PI
+
 export class Character {
   constructor() {
     this.group = new THREE.Group()
@@ -49,7 +53,7 @@ export class Character {
       this.group.position.x = p.x
       this.group.position.z = p.z
       this.angle = approachAngle(this.angle, facingAngle(dir), TURN_SPEED * dt)
-      this.group.rotation.y = this.angle
+      this.group.rotation.y = this.angle + MODEL_FACING_OFFSET
     }
     this.play(animationFor(dir.magnitude))
     if (this.mixer) this.mixer.update(dt)
