@@ -1,6 +1,7 @@
 import { createApp } from './app.js'
 import { createJoystick } from './joystick.js'
 import { startDesktop } from './desktop.js'
+import { createActionButtons } from './actions-ui.js'
 
 const MODEL_URL = import.meta.env.BASE_URL + 'models/character.glb'
 const canvas = document.getElementById('ar-canvas')
@@ -11,7 +12,10 @@ function showMessage(text) {
   messageEl.hidden = false
 }
 
-const app = createApp({ modelUrl: MODEL_URL })
+let buttons = null
+const app = createApp({ modelUrl: MODEL_URL, onBusy: b => buttons && buttons.setBusy(b) })
+if (new URLSearchParams(location.search).has('debug')) window.__app = app
+buttons = createActionButtons(document.getElementById('action-root'), name => app.triggerAction(name))
 createJoystick(document.getElementById('joystick-root'), v => app.setInput(v))
 
 async function main() {

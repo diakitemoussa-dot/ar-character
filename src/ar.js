@@ -24,7 +24,9 @@ export async function startAR({ canvas, app, onError }) {
     name: 'character-ar',
 
     onStart: () => {
-      const { scene, camera } = XR8.Threejs.xrScene()
+      const { scene, camera, renderer } = XR8.Threejs.xrScene()
+      renderer.shadowMap.enabled = true
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap
       // initial camera height must be > 0 (official example uses 0, 2, 2); set BEFORE updateCameraProjectionMatrix
       camera.position.set(0, 2, 2)
       XR8.XrController.updateCameraProjectionMatrix({
